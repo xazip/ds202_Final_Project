@@ -24,6 +24,8 @@ library(reshape2)
 library(broom)
 library(mapproj)
 library(sp)
+library(maptools)
+
 ```
 
 ```{r}
@@ -73,5 +75,11 @@ Expenditure_USD_V4 <- Expenditure_USD_V3 %>% mutate(Numerical_Expenditure = as.i
 ```{r}
 world_map <-  geojsonio::geojson_read('custom.geo.json', what = 'sp')
 #print(world_map)
-print(plot(world_map))
+world_map2 <- fortify(world_map)
+
+str(world_map2)
+
+ggplot(world_map2, mapping = aes(x = long, y = lat, group = group)) +
+  geom_polygon() +
+  coord_cartesian(xlim = c(-180, 180), ylim = c(-84, 84))
 ```
