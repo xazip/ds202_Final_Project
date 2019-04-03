@@ -17,6 +17,8 @@ library(ggplot2)
 library(tidyr)
 library(stringr)
 library(reshape2)
+library(broom)
+library(mapproj)
 
 ```
 
@@ -49,5 +51,38 @@ Expenditure_USD_V2
 
 ```{r}
 summary(Expenditure_USD_V2$Numerical_Expenditure)
-#table(Expenditure_USD_V2$Country)
+
+
+table(Expenditure_USD_V2$Country)
+```
+
+```{r}
+classifications <- c('North Africa', 'Africa', 'Oceania', 'Europe', 'Central Europe', 'Eastern Europe', 'Western Europe', 'Middle East', 'Sub-Saharan', 'Americas', 'Central America and the Caribbean', '', 'North America', 'Asia & Oceania', 'Central Asia', 'East Asia', 'South Asia', 'South-East Asia') #These are more like "regions" and contain no data at all.  I am removing them.
+Expenditure_USD_V3 <- Expenditure_USD_V2 %>% filter(!Country %in% classifications) %>% filter(!is.na(Country))
+
+table(Expenditure_USD_V3$Country)
+sum(table(unique(Expenditure_USD_V3$Country)))
+
+Expenditure_USD_V3
+```
+
+
+```{r}
+Expenditure_USD_V4 <- Expenditure_USD_V3 %>% mutate(Numerical_Expenditure = as.integer(Numerical_Expenditure)) #Expenditures are in USD millions of Dollars
+
+Expenditure_USD_V4 
+```
+
+```{r}
+
+world_map <- geojsonio::geojson_read('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_land.geojson', what = 'sp')
+
+world_map
+
+world_map <- tidy(world_map, Regions = "code")
+
+ggplot() + geom_polygon(data = world_map, aes( x = long, y = lat, group = group)) +theme_void() +coord_map()
+
+
+
 ```
