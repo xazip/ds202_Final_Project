@@ -1,0 +1,53 @@
+---
+title: "Proposal"
+author: "Andrew Maloney"
+date: "4/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(dplyr) 
+library(forcats)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(reshape2)
+
+```
+
+```{r}
+Expenditure_USD <- read_excel('Military_Expenditure_Data.xlsx', sheet = 'Current USD')
+head(Expenditure_USD)
+str(Expenditure_USD)
+```
+
+```{r}
+Expenditure_USD_V1 <- Expenditure_USD %>% gather(key = Country_Year, value = Numerical_Expenditure, 3:71)
+
+```
+
+```{r}
+
+Expenditure_USD_V1[Expenditure_USD_V1 == ". ."] <- NA
+Expenditure_USD_V1[Expenditure_USD_V1 == "xxx"] <- NA
+Expenditure_USD_V1[Expenditure_USD_V1 == "NA"] <- NA 
+
+Expenditure_USD_V1
+```
+
+```{r}
+Expenditure_USD_V2 <- Expenditure_USD_V1 %>% select(-Notes) %>% mutate(Country_Year = as.numeric(Country_Year), Numerical_Expenditure = as.numeric(Numerical_Expenditure))
+
+Expenditure_USD_V2
+
+```
+
+```{r}
+summary(Expenditure_USD_V2$Numerical_Expenditure)
+#table(Expenditure_USD_V2$Country)
+```
