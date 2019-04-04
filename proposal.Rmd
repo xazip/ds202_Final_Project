@@ -1,0 +1,101 @@
+---
+title: "Proposal"
+author: "Andrew Maloney"
+date: "4/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***Project Coordinator:*** Andrew Maloney
+***Team Members:*** Elaine Oldbear, Connor Hergenreter, Sonya Haan
+
+[** Military Expenditure Data Set **](https://www.sipri.org/databases/milex)
+
+#### This data set contains the military expenditure of every country existing(at the time) in 1949 to 2017.  
+
+
+#### This data set is extremely "flexible," which makes it easy to work with other data or new data scraped by our team.  Our teams goal for this project is to create multiple background maps, choropleth maps, and connection maps to show relationships between military expenditures for each Country and other variables. Also, we will be creating time series charts. Hopefully exploring this in great detail will bring about answers to questions we did not think of at the beginning of this project.  
+
+
+#### Our team also wants to use machine learning algorithms to help predict future trends with our data.
+
+
+##### This Rmd file also includes a "somewhat" cleaned version of an excel file we are using as a "base" for are project. 
+
+```{r}
+library(readxl) 
+library(dplyr) 
+library(forcats)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(reshape2)
+library(broom)
+library(mapproj)
+library(sp)
+library(maptools)
+
+```
+
+```{r}
+Expenditure_USD <- read_excel('Military_Expenditure_Data.xlsx', sheet = 'Current USD')  # This sheet has also been cleaned up in excel.  There were multiple imbedded pictures and links, so I removed them before I used R.  
+head(Expenditure_USD)
+str(Expenditure_USD)
+```
+
+```{r}
+Expenditure_USD_V1 <- Expenditure_USD %>% gather(key = Country_Year, value = Numerical_Expenditure, 3:71)
+```
+
+```{r}
+Expenditure_USD_V1[Expenditure_USD_V1 == ". ."] <- NA
+Expenditure_USD_V1[Expenditure_USD_V1 == "xxx"] <- NA
+Expenditure_USD_V1[Expenditure_USD_V1 == "NA"] <- NA 
+Expenditure_USD_V1
+```
+
+```{r}
+Expenditure_USD_V2 <- Expenditure_USD_V1 %>% select(-Notes) %>% mutate(Country_Year = as.numeric(Country_Year), Numerical_Expenditure = as.numeric(Numerical_Expenditure))
+Expenditure_USD_V2
+```
+
+```{r}
+summary(Expenditure_USD_V2$Numerical_Expenditure)
+table(Expenditure_USD_V2$Country)
+```
+
+```{r}
+classifications <- c('North Africa', 'Africa', 'Oceania', 'Europe', 'Central Europe', 'Eastern Europe', 'Western Europe', 'Middle East', 'Sub-Saharan', 'Americas', 'Central America and the Caribbean', '', 'North America', 'Asia & Oceania', 'Central Asia', 'East Asia', 'South Asia', 'South-East Asia') #These are more like "regions" and contain no data at all.  I am removing them.
+Expenditure_USD_V3 <- Expenditure_USD_V2 %>% filter(!Country %in% classifications) %>% filter(!is.na(Country))
+table(Expenditure_USD_V3$Country)
+sum(table(unique(Expenditure_USD_V3$Country)))
+Expenditure_USD_V3
+```
+
+
+```{r}
+Expenditure_USD_V4 <- Expenditure_USD_V3 %>% mutate(Numerical_Expenditure = as.integer(Numerical_Expenditure))
+
+#Expenditures are in USD millions of Dollars
+
+```
+
+
+```{r}
+# This idea was taken from R Graphics Gallery
+
+world_map <-  geojsonio::geojson_read('custom.geo.json', what = 'sp')
+#print(world_map)
+world_map2 <- fortify(world_map)
+
+str(world_map2)
+
+ggplot(world_map2, mapping = aes(x = long, y = lat, group = group)) +
+  geom_polygon() +
+  coord_cartesian(xlim = c(-180, 180), ylim = c(-84, 84))
+
+# Here is an idea of how our group wants to map our data.  The goal is to join our data with the "world_map" data.frame.  This should provide us with a colored legened and a color map.  
+```
