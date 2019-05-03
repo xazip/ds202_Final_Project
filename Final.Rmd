@@ -108,10 +108,10 @@ world_map %>% ggplot(aes(x = long, y = lat, group = group))+ geom_polygon()
 #We are going to do some exploratory Visualization 
 
 #Comparing top Militaries Spending
-Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1990) %>% filter(Country %in% c("USA", "RUSSIAN Federation", "China, P.R.", "India", "France", "UK", "Germany", "Israel", "Pakistan", "Poland")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country))
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1990) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France", "UK", "Germany", "Israel", "Pakistan", "Poland")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country))
 
 #Comparing top Militaries Spending based on GDP
-Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1990) %>% filter(Country %in% c("USA", "RUSSIAN Federation", "China, P.R.", "India", "France", "UK", "Germany", "Israel", "Pakistan", "Poland")) %>% ggplot(aes(x = Year, y = Value*100))+ geom_line(aes(color = Country))
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1990) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France", "UK", "Germany", "Israel", "Pakistan", "Poland")) %>% ggplot(aes(x = Year, y = Value*100))+ geom_line(aes(color = Country))
 
 #Comparing USA and Russia via Current USD
 Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1990) %>% filter(Country %in% c("USA", "Russian Federation")) %>% ggplot()+ geom_line(aes(x = Year, y = log2(Value), color = Country)) 
@@ -134,19 +134,27 @@ Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Me
 #Need more Box Plots
 #There are a couple of things I need to look at
 
-Military_Personal %>% mutate(Country = as.factor(Country))%>% group_by(Country, iso3c, Year, Value) %>%
-  filter(Year >= 1990) %>% filter(Country == "Mexico") %>% ggplot(aes(x = Year, y = Value))+ geom_bar(stat = "identity")
+Military_Personal %>% filter(Country == "Mexico") %>% filter(Year >= 1998) %>% ggplot(aes(x = Year, y = Value))+ geom_line() # Really good graph show mexicos military increase as a percent of labor force
+
+Military_Personal %>% subset(Country %in% c("United States", "Russian Federation", "China", "India", "France", "United Kingdom", "Germany", "Israel", "Pakistan", "Poland")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) # Little Skeptical of these country values
 
 ```
 
 
 ```{r}
-#Something is wrong...
-#Need more boxPlots
-Arms_Import %>% mutate(Country = as.factor(Country)) %>% group_by(Country, Year, Value) %>% filter(Country %in% c("USA", "RUSSIAN Federation", "China, P.R.", "India", "France", "UK", "Germany", "Israel", "Pakistan", "Poland")) %>% filter(Year == 2017) %>% ggplot(aes(x = Country, y = Value))+ geom_bar(stat = "identity")
+
+Arms_Import %>% subset(Country %in% c("United States", "Russian Federation", "China", "India", "France", "United Kingdom", "Germany", "Israel", "Pakistan", "Poland")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) #Number of Arm imports for each powerful Country
+
+Arms_Import %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_line()
 
 ```
 
+```{r}
+#Focus on Active Wars of Importance in Middle East
+#We may need to choose another conflict 
+# Data is not able to show anything due to data not being reported
+
+```
 
 ```{r}
 #Current USD
@@ -159,10 +167,18 @@ Flat_Map <- world_map_join %>% ggplot(aes(x = long, y = lat, group = group, fill
 
 Flat_Map
 
-#ggplotly(Flat_Map)
+#______________________________________________________________________________#
+
+data_for_map_gdp <- Share_of_GDP %>% group_by(Country) %>% filter(Year == max(Year))
+
+world_map_join_gdp <- world_map %>% left_join(data_for_map_gdp, by = "iso3c")
+
+Flat_Map_gdp <- world_map_join_gdp %>% ggplot(aes(x = long, y = lat, group = group, fill = Value))+
+  geom_polygon() + scale_fill_viridis(option = "inferno", direction = -1)
+
+Flat_Map_gdp
 
 ```
-
 
 ```{r}
 #Current USD
@@ -178,6 +194,17 @@ Animation <- ggplot() + geom_polygon(data = Animation_Map, aes(x = long, y = lat
   transition_time(Year, range = c(1970, 2017)) + ease_aes('linear') 
 
 #animate(Animation) 
+
+```
+
+
+
+```{r}
+#Global Fire Power
+# This data set contains a nations overall power based on what military equipment they have.  Usually military equipment will be in use for many years... 20 - 100s of years depending on a country.  This data helps explain why a country may be so powerful 
+
+GlobalFirePower_X<- GlobalFirePower %>% select(Country, ISO3, `Total Aircraft Strength`, `Total Helicopter Strength`, `Combat Tanks`, 19, 20, 23)
+
 
 ```
 
