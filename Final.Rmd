@@ -183,20 +183,33 @@ Flat_Map_gdp
 ```{r}
 #Current USD
 Animation_Prep <- Current_USD %>% group_by(Country)
+Animation_Prep_2 <- Share_of_GDP %>% group_by(Country)
 
 Animation_Map <- world_map %>% left_join(Animation_Prep, by = "iso3c")
-
+Animation_Map_2 <- world_map %>% left_join(Animation_Prep_2, by = "iso3c")
 #Animation_Map <- na.omit(Animation_Map)
 
-Animation <- ggplot() + geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group))+
+Animation <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
   geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
   scale_fill_distiller(palette = "BuGn", direction = 1 )+ theme_dark()+
-  transition_time(Year, range = c(1970, 2017)) + ease_aes('linear') 
+  transition_time(Year, range = c(2000, 2017)) + ease_aes('linear') 
 
-#animate(Animation) 
+
+AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
+  geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
+  scale_fill_distiller(palette = "BuGn", direction = 1 )+ theme_dark()+
+  transition_time(Year, range = c(1970, 2017)) + ease_aes('linear')
+
 
 ```
 
+```{r}
+
+#animate(Animation) 
+#animate(Animation_2)
+
+
+```
 
 
 ```{r}
