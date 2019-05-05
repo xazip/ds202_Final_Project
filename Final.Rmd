@@ -66,6 +66,8 @@ Current_USD <- Current_USD %>% mutate(iso3c = countrycode(Country, "country.name
 
 Current_USD[Current_USD$Country == "Central African Rep.", "iso3c"] <- "CAF"
 
+Current_USD[Current_USD$Country == "South Sudan", "iso3c"] <- "SSD"
+
 Share_of_GDP <- Share_of_GDP %>% mutate(iso3c = countrycode(Country, "country.name", destination = "iso3c")) %>% mutate(iso3c = ifelse(Country == "Kosovo", "KOS", iso3c))
 
 Share_of_GDP[Share_of_GDP$Country == "Central African Rep.", "iso3c"] <- "CAF" # Adding
@@ -97,6 +99,10 @@ world_map[world_map$id == "FR1", "iso3c"] <- "FRA"
 world_map[world_map$id == "GB1", "iso3c"] <- "GBR"
 world_map[world_map$id == "NL1", "iso3c"] <- "NLD"
 world_map[world_map$id == "NZ1", "iso3c"] <- "NZL"
+world_map[world_map$id == "SDS", "iso3c"] <- "SSD"
+world_map[world_map$id == "SOL", "iso3c"] <- "SOM"
+world_map[world_map$id == "SAH", "iso3c"] <- "MAR"
+#North Korea, The Bahamas, Bhutan, suriname are the only missing and not reported.
 
 #Practice Plot
 world_map %>% ggplot(aes(x = long, y = lat, group = group))+ geom_polygon()
@@ -207,7 +213,7 @@ world_map_join <- world_map %>% left_join(data_for_map, by = "iso3c")
 Flat_Map <- world_map_join %>% ggplot(aes(x = long, y = lat, group = group, fill = log(Value)))+
   geom_polygon() + scale_fill_viridis(option = "inferno", direction = -1)
 
-Flat_Map
+ggplotly(Flat_Map) 
 
 #______________________________________________________________________________#
 
@@ -216,9 +222,9 @@ data_for_map_gdp <- Share_of_GDP %>% group_by(Country) %>% filter(Year == max(Ye
 world_map_join_gdp <- world_map %>% left_join(data_for_map_gdp, by = "iso3c")
 
 Flat_Map_gdp <- world_map_join_gdp %>% ggplot(aes(x = long, y = lat, group = group, fill = Value))+
-  geom_polygon() + scale_fill_viridis(option = "inferno", direction = -1)
+  geom_polygon()+ scale_fill_viridis(option = "inferno", direction = -1)
 
-Flat_Map_gdp
+ggplotly(Flat_Map_gdp)
 
 ```
 
