@@ -49,7 +49,7 @@ GlobalFirePower <- read_excel('GlobalFirePower.xlsx', sheet = 'GlobalFirePower')
 #Gathering columns and mutating values to numeric
 # Datasets messy formats were all similar
 
-Current_USD <- Current_USD %>% gather(Year, Value, -Country, -Notes) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% filter(!is.na(Value))
+Current_USD <- Current_USD %>% gather(Year, Value, -Country, -Notes) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% filter(!is.na(Value)) %>% mutate(Value = Value)
 
 Share_of_GDP <- Share_of_GDP %>% gather(Year, Value, -Country, -Notes) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% filter(!is.na(Value))
 
@@ -108,19 +108,26 @@ world_map %>% ggplot(aes(x = long, y = lat, group = group))+ geom_polygon()
 #We are going to do some exploratory Visualization 
 
 #Comparing top Militaries Spending
-Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure Country USD")+ xlab("Years")+ ylab("Current Prices")+scale_x_continuous(breaks = c(1992:2017))+ scale_y_continuous(breaks = c(0e+00, 2e+05, 4e+05, 6e+05), labels = c("Hundreds of Millions", "200 Billionish", "400 Billion", "600 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure Country USD")+ xlab("Years")+ ylab("Current Prices")+scale_x_continuous(breaks = c(1992:2017))+ scale_y_continuous(breaks = c(0e+00, 2e+05, 4e+05, 6e+05), labels = c("Hundreds of Millions", "200 Billion", "400 Billion", "600 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure Country USD")+ xlab("Years")+ ylab("Current Prices Log2")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
 
 #Comparing weak military Spending
-Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure Country USD")+ xlab("Year")+ ylab("Current Prices")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure(Weak) Country USD")+ xlab("Year")+ ylab("Current Prices")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))+ scale_y_continuous(breaks = c(0, 500, 1000, 1500), labels = c("10s of Millions", "500 Million", "1 Billion", "1.5 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure(Weak) Country USD")+ xlab("Year")+ ylab("Current Prices Log2")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
 
 
 #------------------------------------------------------------------------#
 
 #Comparing top Militaries Spending based on GDP
-Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Military Personal as % of Labor Force")+ scale_y_continuous(labels = scales::percent)+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Military Expenditure")+ scale_y_continuous(labels = scales::percent)+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
 
 #Comparing weak Militaries Spending based on GDP
-Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Military Personal as % of Labor Force")+ scale_y_continuous(labels = scales::percent)+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Military Expenditure")+ scale_y_continuous(labels = scales::percent)+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
 
 #------------------------------------------------------------------------#
 
@@ -134,7 +141,9 @@ Military_Personal %>% subset(Country %in% c("Ireland", "Sierra Leone", "Ghana", 
 #------------------------------------------------------------------------#
 
 #Comparing top Militaries Arm imports
-Arms_Import %>% subset(Country %in% c("United States", "Russian Federation", "China", "India", "France")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+scale_x_continuous(breaks = c(1992:2016))+ scale_y_continuous(breaks = c(2.000e+06, 1.029e+09, 2.500e+09, 5.322e+09), labels = c("2 Million", "1 Billion", "2&(1/2) Billion", "5 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1)) #Number of Arm imports for each powerful Country
+Arms_Import %>% subset(Country %in% c("United States", "Russian Federation", "China", "India", "France")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+scale_x_continuous(breaks = c(1992:2016))+ scale_y_continuous(breaks = c(2.000e+06, 1.029e+09, 2.500e+09, 5.322e+09), labels = c("2 Million", "1 Billion", "2.5 Billion", "5 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1)) #Number of Arm imports for each powerful Country
+
+
 
 #Comparing Weak Militaries Arm imports
 Arms_Import %>% subset(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+scale_x_continuous(breaks = c(1992:2016))+ scale_y_continuous(breaks = c(2.000e+06, 15.000e+06, 38.000e+06, 76.000e+06), labels = c("2 Million", "15 Million", "38 Million", "76 Million"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1)) #Number of Arm imports for each powerful Country
@@ -159,18 +168,25 @@ GlobalFirePower_X %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", 
 ```{r}
 #Mexico Information
 
-Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Mexico") %>% ggplot(aes(x = Year, y = Value/1000))+ geom_point()+ geom_line()+ ggtitle("Mexico's Military Expenditure")+ xlab("Year")+ ylab("Current Prices")
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+ ggtitle("Mexico's Military Expenditure")+ xlab("Year")+ ylab("Current Prices")+ scale_y_continuous(breaks = c(0, 2500, 5000, 7500), labels = c("Hundreds of Millions", "2.5 Billion", "5 Billion", "7.5 Billion"))
+
+
 
 #-----------------------------------------------------------------------------------------------------#
-Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Mexico") %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+ ggtitle("Mexico's Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Percent of GDP")
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value * 100))+ geom_point()+ geom_line()+ ggtitle("Mexico's Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Percent of GDP")+scale_y_continuous(breaks = c(.400, .500, .600, .700), labels = c("4%", "5%", "6%", "7%"))
+
 
 #-----------------------------------------------------------------------------------------------------#
-Military_Personal %>% filter(Country == "Mexico") %>% ggplot(aes(x = Year, y = Value))+ geom_line()+
-  ggtitle("Mexico's Military Personal as % of Labor Force")+ xlab("Year")+ ylab("Military Personal")# Really good graph show mexicos military increase as a percent of labor force
+Military_Personal %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+
+  ggtitle("Mexico's Military Personal as % of Labor Force")+ xlab("Year")+ ylab("Military Personal")+ scale_y_continuous(breaks = c(.45, .50, .55, .60, .65), labels = c(".45%", ".50%", ".55%", ".60%", ".65%"))# Really good graph show mexicos military increase as a percent of labor force
+
+
 
 #-----------------------------------------------------------------------------------------------------#
-Arms_Import %>% filter(Country == "Mexico") %>% ggplot(aes(x = Year, y = Value))+ geom_line()+
-   ggtitle("Mexico's Military Arms Import")+ xlab("Year")+ ylab("Military Arms")
+Arms_Import %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+
+   ggtitle("Mexico's Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+ scale_y_continuous(breaks = c(0e+00, 1e+08, 2e+08, 3e+08, 4e+08, 5e+08), labels = c("6 Million", "100 Million", "200 Million", "300 Million", "400 Million", "500 Million"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+
 
 #-----------------------------------------------------------------------------------------------------#
 GlobalFirePower_X<- GlobalFirePower %>% select(Country, ISO3, `Total Aircraft Strength`, `Total Helicopter Strength`, `Combat Tanks`, 19, 20, 23)
