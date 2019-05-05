@@ -239,13 +239,13 @@ Animation_Map_2 <- world_map %>% left_join(Animation_Prep_2, by = "iso3c")
 
 Animation <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
   geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
-  scale_fill_distiller(palette = "BuGn", direction = 1 )+ theme_dark()+
+  scale_fill_viridis(option = "plasma")+ theme_dark()+
   transition_time(Year, range = c(2000, 2017)) + ease_aes('linear') 
 
 
 AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
   geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
-  scale_fill_distiller(palette = "BuGn", direction = 1 )+ theme_dark()+
+  scale_fill_viridis(option = "plasma", direction = 1 )+ theme_dark()+
   transition_time(Year, range = c(1970, 2017)) + ease_aes('linear')
 
 
@@ -254,7 +254,11 @@ AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, g
 ```{r}
 
 #animate(Animation) 
-#animate(Animation_2)
+
+```
+
+```{r}
+#animate(AnimationX)
 
 
 ```
