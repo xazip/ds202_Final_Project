@@ -210,10 +210,10 @@ data_for_map <- Current_USD %>% group_by(Country) %>% filter(Year == max(Year))
 
 world_map_join <- world_map %>% left_join(data_for_map, by = "iso3c")
 
-Flat_Map <- world_map_join %>% ggplot(aes(x = long, y = lat, group = group, fill = log(Value)))+
+Flat_Map <- world_map_join %>% ggplot(aes(x = long, y = lat, group = group, fill = log2(Value)))+
   geom_polygon() + scale_fill_viridis(option = "inferno", direction = -1)
 
-ggplotly(Flat_Map) 
+Flat_Map 
 
 #______________________________________________________________________________#
 
@@ -221,10 +221,10 @@ data_for_map_gdp <- Share_of_GDP %>% group_by(Country) %>% filter(Year == max(Ye
 
 world_map_join_gdp <- world_map %>% left_join(data_for_map_gdp, by = "iso3c")
 
-Flat_Map_gdp <- world_map_join_gdp %>% ggplot(aes(x = long, y = lat, group = group, fill = Value))+
+Flat_Map_gdp <- world_map_join_gdp %>% ggplot(aes(x = long, y = lat, group = group, fill = log2(Value)))+
   geom_polygon()+ scale_fill_viridis(option = "inferno", direction = -1)
 
-ggplotly(Flat_Map_gdp)
+Flat_Map_gdp
 
 ```
 
@@ -239,12 +239,12 @@ Animation_Map_2 <- world_map %>% left_join(Animation_Prep_2, by = "iso3c")
 
 Animation <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
   geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
-  scale_fill_viridis(option = "plasma")+ theme_dark()+
+  scale_fill_viridis(option = "inferno")+
   transition_time(Year, range = c(2000, 2017)) + ease_aes('linear') 
 
 
 AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
-  geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
+  geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = Value))+ 
   scale_fill_viridis(option = "plasma", direction = 1 )+ theme_dark()+
   transition_time(Year, range = c(1970, 2017)) + ease_aes('linear')
 
