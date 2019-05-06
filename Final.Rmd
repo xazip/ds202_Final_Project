@@ -233,33 +233,35 @@ Flat_Map_gdp
 Animation_Prep <- Current_USD %>% group_by(Country)
 Animation_Prep_2 <- Share_of_GDP %>% group_by(Country)
 
-Animation_Map <- world_map %>% left_join(Animation_Prep, by = "iso3c")
-Animation_Map_2 <- world_map %>% left_join(Animation_Prep_2, by = "iso3c")
+
+
+Animation_Map <- world_map %>% left_join(Animation_Prep, by = "iso3c") %>% filter(Year >= 1992)
+Animation_Map_2 <- world_map %>% left_join(Animation_Prep_2, by = "iso3c") %>% filter(Year >= 1992)
 #Animation_Map <- na.omit(Animation_Map)
 
 Animation <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
-  geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
-  scale_fill_viridis(option = "inferno")+
-  transition_time(Year, range = c(2000, 2017)) + ease_aes('linear') 
+  geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group, fill = sqrt(Value)))+ theme(legend.position = "top")+
+  scale_fill_viridis(option = "viridis", direction = -1)+ labs(title = "World Map USD Year: {frame_time}")+
+  transition_time(Year, range = c(1992, 2017)) + ease_aes('linear') 
 
 
 AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
-  geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = Value))+ 
-  scale_fill_viridis(option = "plasma", direction = 1 )+ theme_dark()+
-  transition_time(Year, range = c(1970, 2017)) + ease_aes('linear')
+  geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = sqrt(Value)))+  theme(legend.position = "top")+
+  scale_fill_viridis(option = "inferno", direction = -1)+ labs(title = "World Map GDP Year: {frame_time}")+
+  transition_time(Year, range = c(1992, 2017)) + ease_aes('linear')
 
 
 ```
 
 ```{r}
 
-#animate(Animation) 
-
+#Plot1 <-  animate(Animation) 
+#anim_save("Expenditure.gif", Plot1 )
 ```
 
 ```{r}
-#animate(AnimationX)
-
+#Plot2 <- animate(AnimationX)
+#anim_save("GDP.gif", Plot2 )
 
 ```
 
