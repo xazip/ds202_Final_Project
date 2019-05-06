@@ -1,0 +1,387 @@
+---
+title: "Project Report"
+author: "Andrew Maloney, Sonya Haan, Elaine Oldbear, Connor Hergenreter"
+date: "5/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Background and Questions Raised
+
+Military expenditure has been a hot topic as of late. The United States is estimated to spend $989 billion on their military in 2019 (Amadeo, 2019). If the United States is spending almost a trillion dollars, then how much do other countries spend? 
+
+This report will contain findings on how the strongest and weakest militaries compare as well as what determines a military's strength. If a dataset that contains spending over time is used then conflicts can be tied in to see how much military spending is boosted by this. The other question that will be examined will be on how Mexico's military spending has changed over time due to their struggle with the drug cartels.
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE} 
+# Packages used for the Final Project
+
+library(countrycode)
+library(tidyverse)
+library(readxl)
+library(maps)
+library(RColorBrewer)
+library(viridis)
+library(rworldmap)
+library(maptools)
+library(dplyr)
+library(ggplot2)
+library(plotly) 
+library(gifski)
+library(gganimate)
+
+```
+
+#The Pipeline for Obtaining and Cleaning the Datasets
+
+## Datasets
+
+A dataset containing military expenditure of every existing country from 1949 - 2017 was found at www.sipri.org/databases/milex. The file was an excel workbook that was comprised of 9 sheets all related to military spending. The two sheets used from this set are Current_USD and Share_of_GDP. Current_USD shows military expenditure in US$ in millions as reported for each year. Share_of_GDP displays the military expenditure as a percentage of the country's GDP at the time.
+
+Three more sets related to military arms will also be used to further examine military spending. These three sets are the Arms Import dataset obtained from https://data.worldbank.org/indicator/MS.MIL.MPRT.KD, the Armed Forces Personel dataset obtained from https://data.worldbank.org/indicator/ms.mil.totl.p1, and the Global Firepower dataset obtained from https://www.kaggle.com/blitzr/gfp2017#GlobalFirePower_multiindex.csv.
+
+The Armed Forces reports the total number of arms imported by each country from 1960 to 2017. Like the Military Expenditure Data set, this was also created by SIPRI. This set was ready to use on download so no cleaning had to be done.
+
+The Armed Forces Personel reports the percentage of the labor force in the military for each country from 1960 to 2017. SIPRI also created this set and it was set up in the same way their Armed Forces set was. Again, no cleaning required for this.
+
+The final set, Global Firepower, contains information on the total number of various military assets for all countries in 2017. This set required no cleaning and was ready for use. Using this set to compare current military assets will put the current world stage into perspective.
+
+## Cleaning
+
+One thing to keep in mind with the SIPRI military expenditure set is that there are missing values throughout the set. The missing values are either the result of the countries not existing at the time or values not being reported due to governmental issues at the time. These values will not be removed or replaced to avoid breaking the plotted maps in the future.
+
+The Current US$ sheet originally had 71 columns consisting of Country, Notes, and then a column for each year from 1949 to 2017. To easily work with this dataset, the years columns had to be gathered. After gathering the sheet, it was left with four columns: Country, Notes, Year, and Value. The last thing to do with the sheet was to change the year and value variables to numeric.
+
+There were three countries with missing information in both the Current_USD and Share_of_GDP sheet. These three countries were Kosovo, Central African Rep., and South Sudan. The three countries were added to their respective datasets along with country codes.
+
+The biggest undertaking when it came down to cleaning was to add in country codes to the dataset and subsequently join it with the world map data being used. The two sets were joined using the iso3c column, which is the country code. With this new joined frame the military expenditures could now be plotted on a world map.
+
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Datasets used for the Final Project
+
+Current_USD <- read_excel('Military_Expenditure_Data.xlsx', sheet = 'Current USD') #Sipri Dataset
+
+Share_of_GDP <- read_excel('Military_Expenditure_Data.xlsx', sheet = 'Share of GDP', skip = 5) #Sipri Dataset
+
+Arms_Import <- read_excel('Arms_Imported.xlsx', sheet = "Data", skip = 3) #WorldBank Dataset obtained from Sipri
+
+Military_Personal <- read_excel('Armed_Forces_Personel.xlsx', sheet = 'Data', skip = 3) #WorldBank Dataset obtained from Sipri
+
+GlobalFirePower <- read_excel('GlobalFirePower.xlsx', sheet = 'GlobalFirePower')
+
+```
+
+```{r, message=FALSE, warning=FALSE, include=FALSE, echo=FALSE}
+#Cleaning of Datasets 
+#Gathering columns and mutating values to numeric
+# Datasets messy formats were all similar
+
+Current_USD <- Current_USD %>% gather(Year, Value, -Country, -Notes) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% filter(!is.na(Value)) %>% mutate(Value = Value)
+
+Share_of_GDP <- Share_of_GDP %>% gather(Year, Value, -Country, -Notes) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% filter(!is.na(Value))
+
+Arms_Import <- Arms_Import %>% gather(Year, Value, -`Country Name`, -`Country Code`) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% rename(Country = `Country Name`, iso3c = `Country Code`) %>% filter(!is.na(Value))
+
+Military_Personal <- Military_Personal %>% gather(Year, Value, -`Country Name`, -`Country Code`) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% rename(Country = `Country Name`, iso3c = `Country Code`) %>% filter(!is.na(Value)) 
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Adding missing countries and country codes 
+
+Current_USD <- Current_USD %>% mutate(iso3c = countrycode(Country, "country.name", destination = "iso3c")) %>% mutate(iso3c = ifelse(Country == "Kosovo", "KOS", iso3c))
+
+Current_USD[Current_USD$Country == "Central African Rep.", "iso3c"] <- "CAF"
+
+Current_USD[Current_USD$Country == "South Sudan", "iso3c"] <- "SSD"
+
+Share_of_GDP <- Share_of_GDP %>% mutate(iso3c = countrycode(Country, "country.name", destination = "iso3c")) %>% mutate(iso3c = ifelse(Country == "Kosovo", "KOS", iso3c))
+
+Share_of_GDP[Share_of_GDP$Country == "Central African Rep.", "iso3c"] <- "CAF" # Adding
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#We are using a large GeoSpatialDataframe to Plot Countires and their information
+#Libraries we will use for this
+#Loading Geo_spatial Data Frame created @ https://geojson-maps.ash.ms/
+library(broom)
+library(geojsonio)
+
+world_map <-  geojsonio::geojson_read('custom.geo.json', what = 'sp')
+
+
+world_map <- tidy(world_map, region = "sov_a3") # Changing from large spatial dataframe to regular data frame.
+
+world_map <- world_map %>% mutate(iso3c = id)
+
+#Adding ISO
+#Manual searched for incorrect country codes and fixed them to match
+world_map[world_map$id == "US1", "iso3c"] <- "USA"
+world_map[world_map$id == "CH1", "iso3c"] <- "CHN"
+world_map[world_map$id == "AU1", "iso3c"] <- "AUS"
+world_map[world_map$id == "DN1", "iso3c"] <- "DNK"
+world_map[world_map$id == "FI1", "iso3c"] <- "FIN"
+world_map[world_map$id == "FR1", "iso3c"] <- "FRA"
+world_map[world_map$id == "GB1", "iso3c"] <- "GBR"
+world_map[world_map$id == "NL1", "iso3c"] <- "NLD"
+world_map[world_map$id == "NZ1", "iso3c"] <- "NZL"
+world_map[world_map$id == "SDS", "iso3c"] <- "SSD"
+world_map[world_map$id == "SOL", "iso3c"] <- "SOM"
+world_map[world_map$id == "SAH", "iso3c"] <- "MAR"
+#North Korea, The Bahamas, Bhutan, suriname are the only missing and not reported.
+
+#Practice Plot
+world_map %>% ggplot(aes(x = long, y = lat, group = group))+ geom_polygon()
+
+```
+
+#The Exploratory Analysis
+
+Before being able to compare the strongest and weakest militaries, they needed to be found. A good way to go about doing this was to plot a choropleth map using raw military expenditure as well as military expenditure as a percentage of GDP. The resulting plots are as follows:
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Current USD
+data_for_map <- Current_USD %>% group_by(Country) %>% filter(Year == max(Year))
+
+world_map_join <- world_map %>% left_join(data_for_map, by = "iso3c")
+
+Flat_Map <- world_map_join %>% ggplot(aes(x = long, y = lat, group = group, fill = log2(Value)))+
+  geom_polygon() + scale_fill_viridis(option = "inferno", direction = -1) + labs(title="Raw Military Expenditure in 2017")
+
+Flat_Map 
+
+#______________________________________________________________________________#
+
+data_for_map_gdp <- Share_of_GDP %>% group_by(Country) %>% filter(Year == max(Year))
+
+world_map_join_gdp <- world_map %>% left_join(data_for_map_gdp, by = "iso3c")
+
+Flat_Map_gdp <- world_map_join_gdp %>% ggplot(aes(x = long, y = lat, group = group, fill = log2(Value)))+
+  geom_polygon()+ scale_fill_viridis(option = "inferno", direction = -1) + labs(title="Military Expenditure as Percentage of GDP in 2017")
+
+Flat_Map_gdp
+
+```
+
+The darker the country the higher the value. Using these two maps, the strongest and weakest militaries by monetary value can be found.
+
+### Strongest Militaries
+1. USA
+2. Russia
+3. China
+4. India
+5. France
+
+### Weakest Militaries
+1. Ireland
+2. Sierra Leone
+3. Ghana
+4. Latvia
+5. Estonia
+
+
+#Steps for Data Wrangling and Visualization
+
+Having found the strongest and weakest militaries, it is now possible to answer both questions.
+
+## Question 1
+### How do the Strongest and Weakest Militaries Compare? Can we Conclude what Determines a Military's Strength?
+
+The information required to answer this question is best obtained through line graphs. Following are sets of graphs comparing the raw military expenditure and percentage of GDP for both sets of countries.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Statistical Plots 
+#We are going to do some exploratory Visualization 
+
+#Comparing top Militaries Spending
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure Country USD")+ xlab("Years")+ ylab("Current Prices")+scale_x_continuous(breaks = c(1992:2017))+ scale_y_continuous(breaks = c(0e+00, 2e+05, 4e+05, 6e+05), labels = c("Hundreds of Millions", "200 Billion", "400 Billion", "600 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure Country USD")+ xlab("Years")+ ylab("Current Prices Log2")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+
+#Comparing weak military Spending
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure(Weak) Country USD")+ xlab("Year")+ ylab("Current Prices")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))+ scale_y_continuous(breaks = c(0, 500, 1000, 1500), labels = c("10s of Millions", "500 Million", "1 Billion", "1.5 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = log2(Value)))+ geom_line(aes(color = Country)) + ggtitle("Military Expenditure(Weak) Country USD")+ xlab("Year")+ ylab("Current Prices Log2")+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+
+#------------------------------------------------------------------------#
+
+#Comparing top Militaries Spending based on GDP
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("USA", "Russian Federation", "China, P.R.", "India", "France")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Military Expenditure")+ scale_y_continuous(labels = scales::percent)+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+#Comparing weak Militaries Spending based on GDP
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Year >= 1992) %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Military Expenditure")+ scale_y_continuous(labels = scales::percent)+scale_x_continuous(breaks = c(1992:2017))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+#------------------------------------------------------------------------#
+
+#Comparing Top Countries Military Personal
+
+Military_Personal %>% subset(Country %in% c("United States", "Russian Federation", "China", "India", "France")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+scale_x_continuous(breaks = c(1992:2016))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))+ggtitle("Military Personal % of Labor Force")+ xlab("Years")+ ylab("Military Personal")
+
+#Comparing Weak Countries Military Personal
+Military_Personal %>% subset(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+scale_x_continuous(breaks = c(1992:2016))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))+ggtitle("Military Expenditure as % Labor Force")+ xlab("Years")+ ylab("Military Personal")  
+    
+#------------------------------------------------------------------------#
+
+#Comparing top Militaries Arm imports
+Arms_Import %>% subset(Country %in% c("United States", "Russian Federation", "China", "India", "France")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+scale_x_continuous(breaks = c(1992:2016))+ scale_y_continuous(breaks = c(2.000e+06, 1.029e+09, 2.500e+09, 5.322e+09), labels = c("2 Million", "1 Billion", "2.5 Billion", "5 Billion"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1)) #Number of Arm imports for each powerful Country
+
+
+
+#Comparing Weak Militaries Arm imports
+Arms_Import %>% subset(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+scale_x_continuous(breaks = c(1992:2016))+ scale_y_continuous(breaks = c(2.000e+06, 15.000e+06, 38.000e+06, 76.000e+06), labels = c("2 Million", "15 Million", "38 Million", "76 Million"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1)) #Number of Arm imports for each powerful Country
+
+
+
+
+#------------------------------------------------------------------------#
+
+#Countries Military Arsenals for Year 2017
+#Statistic
+
+GlobalFirePower_X<- GlobalFirePower %>% select(Country, ISO3, `Total Aircraft Strength`, `Total Helicopter Strength`, `Combat Tanks`, 19, 20, 23)
+
+GlobalFirePower_X %>% filter(Country %in% c("United States", "Russia", "China", "India", "France")) %>% summary()
+
+GlobalFirePower_X %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% summary()
+
+```
+
+## Question 2
+### How did the Cartels Affect Mexico's Military?
+
+This was a very interesting question to cover. Mexico has had to struggle with the cartels for many years, but how did it affect their military expenditure? Another set of line plots are the best way to go about examining this change over time. Beyond raw military expenditure and percentage of GDP, it might also be interesting to view their number of military personel and number of arms imported.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Mexico Information
+
+Current_USD %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+ ggtitle("Mexico's Military Expenditure")+ xlab("Year")+ ylab("Current Prices")+ scale_y_continuous(breaks = c(0, 2500, 5000, 7500), labels = c("Hundreds of Millions", "2.5 Billion", "5 Billion", "7.5 Billion"))
+
+
+
+#-----------------------------------------------------------------------------------------------------#
+Share_of_GDP %>% group_by(Country, iso3c, Year, Value) %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value * 100))+ geom_point()+ geom_line()+ ggtitle("Mexico's Military Expenditure as % of GDP")+ xlab("Year")+ ylab("Percent of GDP")+scale_y_continuous(breaks = c(.400, .500, .600, .700), labels = c("4%", "5%", "6%", "7%"))
+
+
+#-----------------------------------------------------------------------------------------------------#
+Military_Personal %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+
+  ggtitle("Mexico's Military Personal as % of Labor Force")+ xlab("Year")+ ylab("Military Personal")+ scale_y_continuous(breaks = c(.45, .50, .55, .60, .65), labels = c(".45%", ".50%", ".55%", ".60%", ".65%"))# Really good graph show mexicos military increase as a percent of labor force
+
+
+
+#-----------------------------------------------------------------------------------------------------#
+Arms_Import %>% filter(Country == "Mexico") %>% filter(Year >= 1970) %>% ggplot(aes(x = Year, y = Value))+ geom_point()+ geom_line()+
+   ggtitle("Mexico's Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+ scale_y_continuous(breaks = c(0e+00, 1e+08, 2e+08, 3e+08, 4e+08, 5e+08), labels = c("6 Million", "100 Million", "200 Million", "300 Million", "400 Million", "500 Million"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1))
+
+
+
+#-----------------------------------------------------------------------------------------------------#
+GlobalFirePower_X<- GlobalFirePower %>% select(Country, ISO3, `Total Aircraft Strength`, `Total Helicopter Strength`, `Combat Tanks`, 19, 20, 23)
+
+GlobalFirePower_X %>% filter(Country == "Mexico")
+
+
+```
+
+Of the four graphs, Mexico's Military Personel as % of Labor Force seems the most interesting. What causes the major jump in troops in 2006? The year 2006 was when Felipe Calderon was elected president. One of Calderon's major promises to the Mexican populace during his campaign was to begin the war on drugs (Lakhani, 2016). As he was elected the number of military personel exploded from .45% of the labor force to .6%.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#Current USD
+Animation_Prep <- Current_USD %>% group_by(Country)
+Animation_Prep_2 <- Share_of_GDP %>% group_by(Country)
+
+Animation_Map <- world_map %>% left_join(Animation_Prep, by = "iso3c")
+Animation_Map_2 <- world_map %>% left_join(Animation_Prep_2, by = "iso3c")
+#Animation_Map <- na.omit(Animation_Map)
+
+Animation <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
+  geom_polygon(data = Animation_Map, aes(x = long, y = lat, group = group, fill = log(Value)))+ 
+  scale_fill_viridis(option = "inferno")+
+  transition_time(Year, range = c(2000, 2017)) + ease_aes('linear') 
+
+
+AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group))+
+  geom_polygon(data = Animation_Map_2, aes(x = long, y = lat, group = group, fill = Value))+ 
+  scale_fill_viridis(option = "plasma", direction = 1 )+ theme_dark()+
+  transition_time(Year, range = c(1970, 2017)) + ease_aes('linear')
+
+
+```
+
+```{r}
+
+#animate(Animation) 
+
+```
+
+```{r}
+#animate(AnimationX)
+
+
+```
+
+# Answers to the Questions Raised
+
+Now with the relevant information plotted out the questions can now be answered.
+
+## Question 1
+### How do the Strongest and Weakest Militaries Compare? Can we Conclude What Determines a Military's Strength?
+
+Out of all the countries examined, the United States spends the most on military by a large margin. France, India, Russia, and China are all very close to eachother when it comes down to raw spending on military. Differences between all countries are easily noted when comparing their military expenditure as a percentage of their GDP.
+
+## Top Military Expenditure as % of GDP in 2017
+1. Russia has taken the lead at ~4.25%
+2. USA spends at ~3.2%
+3. India spends at ~2.5%
+4. France spends at ~2.3%
+5. China spends at ~1.9%
+
+## Bottom Military Expenditure as % of GDP in 2017
+1. Estonia spends at ~2.1%
+2. Latvia spends at ~1.75%
+3. Sierra Leone spends at ~.75%
+4. Ghana spends at ~.4%
+5. Ireland spends at ~.35%
+
+Taking into account the economy of each of these countries really puts their spending on military into perspective. The GDP difference between these two sets of countries is hundreds of billions. 
+
+Money is what sets these militaries apart. In 2017, the United States spent 600 billion on military while Ireland spent 1.1 billion. The monetary difference is absolutely staggering. For any of the bottom militaries to want to compete, they would need to have some sort of economic explosion.
+
+## Question 2
+### How did the Cartels Affect Mexico's Military?
+
+The war on drugs definitely had an impact on military expenditure in Mexico. Looking at raw military expenditure over time shows it begin to rise rapidly upon the election of Felipe Calderon in 2006. Mexico's military expenditure as a percentage of GDP hit a historical low in the year 2004, just two years before the beginning of one of their most deadly and expensive conflicts.
+
+Military expenditure continued to increase rapidly until the year 2015. Not enough time has passed since then to draw any serious conclusions but using spending it appears that Mexico has given up on their war on drugs.
+
+#Conclusion
+
+Money and Military go hand in hand. This analysis really showed the difference between all countries throughout the years. In time we might see a new military superpower arrive and shake up the scene. Until then it appears that the United States, China, Russia, India, and France are going to be sitting at the top.
+
+# Sources
+
+Amadeo, K. (2019). Why Military Spending Is More Than You Think It Is. [online] The Balance. Available at: https://www.thebalance.com/u-s-military-budget-components-challenges-growth-3306320 [Accessed 6 May 2019].
+
+Lakhani, N. (2019). Mexico's war on drugs: what has it achieved and how is the US involved?. [online] the Guardian. Available at: https://www.theguardian.com/news/2016/dec/08/mexico-war-on-drugs-cost-achievements-us-billions [Accessed 6 May 2019].
+
+## Datasets
+
+Military Expenditure Data
+Sipri.org. (2019). SIPRI Military Expenditure Database | SIPRI. [online] Available at: https://www.sipri.org/databases/milex [Accessed 6 May 2019].
+
+Arms Import Dataset
+Data.worldbank.org. (2019). Arms imports (SIPRI trend indicator values) | Data. [online] Available at: https://data.worldbank.org/indicator/MS.MIL.MPRT.KD [Accessed 6 May 2019].
+
+Armed Forces Personel Dataset
+Data.worldbank.org. (2019). Armed forces personnel, total | Data. [online] Available at: https://data.worldbank.org/indicator/ms.mil.totl.p1 [Accessed 6 May 2019].
+
+Global Firepower Dataset
+Kaggle.com. (2019). 2017 Military Strength Ranking. [online] Available at: https://www.kaggle.com/blitzr/gfp2017#GlobalFirePower_multiindex.csv [Accessed 6 May 2019].
