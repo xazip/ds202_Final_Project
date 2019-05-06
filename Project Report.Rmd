@@ -385,3 +385,7 @@ Data.worldbank.org. (2019). Armed forces personnel, total | Data. [online] Avail
 
 Global Firepower Dataset
 Kaggle.com. (2019). 2017 Military Strength Ranking. [online] Available at: https://www.kaggle.com/blitzr/gfp2017#GlobalFirePower_multiindex.csv [Accessed 6 May 2019].
+
+## GGanimate
+
+Robinson, David. "Gganimate v0.1.1." Gganimate Package | R Documentation, 28 June 2018, www.rdocumentation.org/packages/gganimate/versions/0.1.1.
