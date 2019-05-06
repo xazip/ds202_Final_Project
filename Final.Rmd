@@ -15,10 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(countrycode)
 library(tidyverse)
 library(readxl)
-library(maps)
 library(RColorBrewer)
 library(viridis)
-library(rworldmap)
 library(maptools)
 library(dplyr)
 library(ggplot2)
@@ -40,14 +38,15 @@ Arms_Import <- read_excel('Arms_Imported.xlsx', sheet = "Data", skip = 3) #World
 
 Military_Personal <- read_excel('Armed_Forces_Personel.xlsx', sheet = 'Data', skip = 3) #WorldBank Dataset obtained from Sipri
 
-GlobalFirePower <- read_excel('GlobalFirePower.xlsx', sheet = 'GlobalFirePower')
+GlobalFirePower <- read_excel('GlobalFirePower.xlsx', sheet = 'GlobalFirePower') #Kaggle Dataset
 
 ```
 
 ```{r}
+
 #Cleaning of Datasets 
 #Gathering columns and mutating values to numeric
-# Datasets messy formats were all similar
+#Datasets messy formats were all similar
 
 Current_USD <- Current_USD %>% gather(Year, Value, -Country, -Notes) %>% mutate(Value = as.numeric(Value), Year = as.numeric(Year)) %>% filter(!is.na(Value)) %>% mutate(Value = Value)
 
@@ -65,13 +64,12 @@ Military_Personal <- Military_Personal %>% gather(Year, Value, -`Country Name`, 
 Current_USD <- Current_USD %>% mutate(iso3c = countrycode(Country, "country.name", destination = "iso3c")) %>% mutate(iso3c = ifelse(Country == "Kosovo", "KOS", iso3c))
 
 Current_USD[Current_USD$Country == "Central African Rep.", "iso3c"] <- "CAF"
-
 Current_USD[Current_USD$Country == "South Sudan", "iso3c"] <- "SSD"
 
 Share_of_GDP <- Share_of_GDP %>% mutate(iso3c = countrycode(Country, "country.name", destination = "iso3c")) %>% mutate(iso3c = ifelse(Country == "Kosovo", "KOS", iso3c))
 
-Share_of_GDP[Share_of_GDP$Country == "Central African Rep.", "iso3c"] <- "CAF" # Adding
-
+Share_of_GDP[Share_of_GDP$Country == "Central African Rep.", "iso3c"] <- "CAF"
+Share_of_GDP[Share_of_GDP$Country == "South Sudan", "iso3c"] <- "SSD"
 ```
 
 ```{r}
@@ -89,6 +87,7 @@ world_map <- tidy(world_map, region = "sov_a3") # Changing from large spatial da
 world_map <- world_map %>% mutate(iso3c = id)
 
 #Adding ISO
+#https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
 #Manual searched for incorrect country codes and fixed them to match
 world_map[world_map$id == "US1", "iso3c"] <- "USA"
 world_map[world_map$id == "CH1", "iso3c"] <- "CHN"
@@ -105,10 +104,11 @@ world_map[world_map$id == "SAH", "iso3c"] <- "MAR"
 #North Korea, The Bahamas, Bhutan, suriname are the only missing and not reported.
 
 #Practice Plot
-world_map %>% ggplot(aes(x = long, y = lat, group = group))+ geom_polygon()
+#world_map %>% ggplot(aes(x = long, y = lat, group = group))+ geom_polygon()
 
 ```
 
+Question 1:
 ```{r}
 #Statistical Plots 
 #We are going to do some exploratory Visualization 
@@ -154,9 +154,6 @@ Arms_Import %>% subset(Country %in% c("United States", "Russian Federation", "Ch
 #Comparing Weak Militaries Arm imports
 Arms_Import %>% subset(Country %in% c("Ireland", "Sierra Leone", "Ghana", "Latvia", "Estonia")) %>% filter(Year >= 1992) %>% ggplot(aes(x = Year, y = Value))+ geom_line(aes(color = Country))+ ggtitle("Military Arms Import")+ xlab("Year")+ ylab("Military Arms")+scale_x_continuous(breaks = c(1992:2016))+ scale_y_continuous(breaks = c(2.000e+06, 15.000e+06, 38.000e+06, 76.000e+06), labels = c("2 Million", "15 Million", "38 Million", "76 Million"))+ theme(axis.text.x = element_text(angle = 80, vjust = 1, hjust = 1)) #Number of Arm imports for each powerful Country
 
-
-
-
 #------------------------------------------------------------------------#
 
 #Countries Military Arsenals for Year 2017
@@ -170,7 +167,7 @@ GlobalFirePower_X %>% filter(Country %in% c("Ireland", "Sierra Leone", "Ghana", 
 
 ```
 
-
+Question 2: 
 ```{r}
 #Mexico Information
 
@@ -201,7 +198,6 @@ GlobalFirePower_X %>% filter(Country == "Mexico")
 
 
 ```
-
 
 
 ```{r}
@@ -251,18 +247,21 @@ AnimationX <- ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, g
   transition_time(Year, range = c(1992, 2017)) + ease_aes('linear')
 
 
+#https://github.com/thomasp85/gganimate
+```
+
+
+Here are the Animated Gifs
+```{r}
+Plot1 <-  animate(Animation) 
+anim_save("Expenditure.gif", Plot1 )
+Plot1
 ```
 
 ```{r}
-
-#Plot1 <-  animate(Animation) 
-#anim_save("Expenditure.gif", Plot1 )
-```
-
-```{r}
-#Plot2 <- animate(AnimationX)
-#anim_save("GDP.gif", Plot2 )
-
+Plot2 <- animate(AnimationX)
+anim_save("GDP.gif", Plot2 )
+Plot2
 ```
 
 
